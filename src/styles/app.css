@@ -1,0 +1,348 @@
+.page { padding: 16px; padding-bottom: 90px; background: var(--bg); min-height: 100vh; color: var(--text); }
+.title { font-size: 30px; margin: 10px 0 16px; letter-spacing: -0.5px; }
+.muted { color: var(--muted); margin: 10px 0; }
+
+.card {
+  background: var(--card);
+  padding: 16px;
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid var(--border);
+}
+
+.label { font-size: 13px; color: var(--muted); }
+
+.input {
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: #fff;
+  outline: none;
+}
+
+.input:focus { border-color: rgba(246,166,0,.55); box-shadow: 0 0 0 4px rgba(246,166,0,.15); }
+
+.btn {
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: white;
+  font-weight: 700;
+}
+
+.btn.primary { background: var(--brand); color: #000; border-color: rgba(0,0,0,.08); }
+.btn.ghost { background: transparent; }
+.btn:disabled { opacity: .55; }
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.badge {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+    width: fit-content;
+    border: 1px solid var(--border);
+    background: #fff;
+  }
+  .badge.green { background: #e7f7ed; }
+  .badge.orange { background: #fff4e5; }
+  .badge.red { background: #ffe8e8; }
+  
+
+.error { color: #b00020; font-size: 13px; }
+
+
+
+/* Layout */
+.page{
+    padding: 16px;
+    padding-bottom: 110px;
+    background: var(--bg);
+    min-height: 100vh;
+    color: var(--text);
+    max-width: 520px;           /* iPhone-friendly width */
+    margin: 0 auto;
+  }
+  
+  .muted{
+    color: var(--muted);
+    margin: 6px 0;
+    line-height: 1.35;
+  }
+  
+  /* Navbar – clean + sticky */
+  .navbar{
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: rgba(247,247,248,.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 10px 0 12px;
+    margin-bottom: 12px;
+  
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .navbar > div:first-child{
+    font-size: 26px;
+    font-weight: 900;
+    letter-spacing: -0.6px;
+  }
+  
+  /* Cards */
+  .card{
+    background: var(--card);
+    padding: 16px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  /* Inputs */
+  .label{ font-size: 12px; color: var(--muted); font-weight: 700; }
+  
+  .input{
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: #fff;
+    outline: none;
+    font-size: 16px; /* iPhone: prevents zoom */
+  }
+  
+  .input:focus{
+    border-color: rgba(246,166,0,.55);
+    box-shadow: 0 0 0 4px rgba(246,166,0,.18);
+  }
+  
+  /* Buttons */
+  .btn{
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: #fff;
+    font-weight: 800;
+    font-size: 15px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: transform .06s ease, box-shadow .2s ease;
+    cursor: pointer;
+  }
+  
+  .btn:active{ transform: scale(.98); }
+  .btn:disabled{ opacity: .55; cursor: not-allowed; }
+  
+  .btn.primary{
+    background: var(--brand);
+    color: #111;
+    border-color: rgba(0,0,0,.08);
+    box-shadow: 0 10px 25px rgba(246,166,0,.25);
+  }
+  
+  .btn.ghost{
+    background: transparent;
+  }
+  
+  /* Badges */
+  .badge{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 900;
+    width: fit-content;
+    border: 1px solid var(--border);
+    background: #fff;
+  }
+  
+  .badge.green{ background: #e7f7ed; }
+  .badge.orange{ background: #fff4e5; }
+  .badge.red{ background: #ffe8e8; }
+  
+  /* Admin dashboard specific helpers */
+  .section-title{
+    margin: 18px 0 10px;
+    font-size: 18px;
+    font-weight: 900;
+  }
+  
+  /* Admin “summary” layout */
+  .admin-summary{
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  
+  .admin-metrics{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  
+  .metric{
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 12px;
+    background: rgba(0,0,0,.02);
+  }
+  
+  .metric .k{
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 800;
+  }
+  
+  .metric .v{
+    margin-top: 6px;
+    font-size: 20px;
+    font-weight: 900;
+  }
+  
+  /* Button grid */
+  .action-grid{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  
+  .action-grid .btn{
+    width: 100%;
+  }
+  
+  /* Low/out row layout */
+  .stock-row{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .stock-row .name{
+    font-weight: 900;
+    font-size: 16px;
+  }
+  
+  .stock-row .qty{
+    font-weight: 900;
+    font-size: 18px;
+  }
+  
+  /* Make long item names wrap nicely */
+  .stock-row .left{
+    min-width: 60%;
+  }
+  
+  .error{ color: #b00020; font-size: 13px; }
+  
+
+  /* ---------- Reports: mobile compact UI ---------- */
+
+.section-title {
+    margin: 14px 0 10px;
+    font-weight: 900;
+    font-size: 18px;
+  }
+  
+  /* compact card just for reports (optional class) */
+  .card.compact {
+    padding: 12px;
+    border-radius: 16px;
+    gap: 8px;
+  }
+  
+  /* compact toolbar row */
+  .toolbar-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  
+  .segment {
+    display: flex;
+    gap: 8px;
+  }
+  
+  .segment .btn {
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-weight: 800;
+  }
+  
+  /* date input compact */
+  .dateWrap {
+    flex: 1;
+    min-width: 160px;
+  }
+  
+  .dateWrap .input {
+    padding: 10px 12px;
+    border-radius: 12px;
+  }
+  
+  /* metrics grid compact */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  
+  .metric {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 10px 12px;
+    background: rgba(0,0,0,0.02);
+  }
+  
+  .metric .k {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 800;
+    margin-bottom: 6px;
+  }
+  
+  .metric .v {
+    font-size: 18px;
+    font-weight: 900;
+    line-height: 1.1;
+  }
+  
+  /* export buttons: mobile optimized */
+  .action-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  
+  .action-grid .btn {
+    padding: 12px 12px;
+    border-radius: 14px;
+  }
+  
+  /* very small screens: stack */
+  @media (max-width: 360px) {
+    .metrics-grid { grid-template-columns: 1fr; }
+    .action-grid { grid-template-columns: 1fr; }
+  }
+  
