@@ -31,7 +31,7 @@ export default function Login() {
       return setErr("PIN must be exactly 4 digits.");
     }
 
-    const email = `${id}@inventory.local`;
+    const email = `${id}@mithomitho.com.au`;
     const password = `${p}${PIN_SUFFIX}`; // <-- 4-digit input, 6-char password
 
     try {
