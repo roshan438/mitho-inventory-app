@@ -2,14 +2,30 @@ import React, { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useStore } from "../context/StoreContext";
-import { STORES } from "../utils/constants";
 
 export default function StoreSelect() {
   const nav = useNavigate();
   const { profile, loading, logout } = useAuth();
   const { setStoreId } = useStore();
 
-  const allowed = useMemo(() => profile?.allowedStores || [], [profile]);
+  // ✅ support both old + new profile fields
+  const allowed = useMemo(() => {
+    const a =
+      (Array.isArray(profile?.storeIds) && profile.storeIds) ||
+      (Array.isArray(profile?.allowedStores) && profile.allowedStores) ||
+      [];
+    return a;
+  }, [profile]);
+
+  // ✅ optional: show default store first
+  const orderedAllowed = useMemo(() => {
+    if (!allowed.length) return [];
+    const def = profile?.defaultStoreId;
+    if (def && allowed.includes(def)) {
+      return [def, ...allowed.filter((x) => x !== def)];
+    }
+    return allowed;
+  }, [allowed, profile]);
 
   if (loading) {
     return (
@@ -39,25 +55,29 @@ export default function StoreSelect() {
         <div>
           <div style={{ fontWeight: 900, fontSize: 20 }}>Choose Store</div>
           <div className="muted" style={{ margin: 0 }}>
-            {profile.name || profile.employeeId} • {profile.role}
+            {profile.name || profile.employeeId || profile.email} • {profile.role}
           </div>
         </div>
         <button className="btn ghost" onClick={logout}>Logout</button>
       </div>
 
       <div className="card">
-        {allowed.length === 0 ? (
+        {orderedAllowed.length === 0 ? (
           <div className="muted">No store assigned. Ask admin to assign you a store.</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {allowed.map((id) => (
+            {orderedAllowed.map((id) => (
               <button
                 key={id}
                 className="btn primary"
                 onClick={() => choose(id)}
-                style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
               >
-                <span style={{ fontSize: 16 }}>{STORES[id] || id}</span>
+                <span style={{ fontSize: 16 }}>{id}</span>
                 <span style={{ opacity: 0.7 }}>›</span>
               </button>
             ))}

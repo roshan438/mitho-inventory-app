@@ -4,12 +4,18 @@ import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import { useStore } from "../context/StoreContext";
 import { useAuth } from "../context/AuthContext";
+import useCurrentStoreName from "../hooks/useCurrentStoreName";
+import AdminQuickBar from "../components/AdminQuickBar";
+
+
 
 import NotificationBell from "../components/NotificationBell";
 
 export default function AdminDashboard() {
   const nav = useNavigate();
-  const { storeId, setStoreId } = useStore();
+  const { setStoreId } = useStore();
+const { storeId, storeName } = useCurrentStoreName();
+
   const { logout } = useAuth();
 
   const [items, setItems] = useState([]);
@@ -115,21 +121,31 @@ export default function AdminDashboard() {
 
   return (
     <div className="page">
-      <div className="navbar">
-        <div style={{ fontWeight: 900 }}>Admin</div>
-
-        <div style={{ display: "flex", gap: 10 }}>
-          <NotificationBell
-            count={unreadCount}
-            onClick={() => nav("/admin/submissions")}
-          />
-          <button className="btn" onClick={logout}>Logout</button>
+      <div className="topbar">
+      <div className="topbar-left">
+        <div className="topbar-title">Admin</div>
+        <div className="topbar-sub">
+          Store: <b className="store-pill">{storeId}</b>
         </div>
-      </div>
+      </div></div>
+
+    <div className="topbar-right">
+      <NotificationBell count={unreadCount} onClick={() => nav("/admin/submissions")} />
+
+      <button className="btn sm" onClick={() => { setStoreId(null); nav("/stores"); }}>
+        Switch
+      </button>
+
+      <button className="btn sm" onClick={logout}>
+        Logout
+      </button>
+    </div>
+
 
       <div className="card admin-summary">
   <div style={{ fontWeight: 900, fontSize: 16 }}>
-    Store: <span className="muted" style={{ fontWeight: 800 }}>{storeId}</span>
+  Store: <span className="muted" style={{ fontWeight: 800 }}>{storeName || storeId}</span>
+
   </div>
 
   <div className="admin-metrics">
@@ -143,13 +159,14 @@ export default function AdminDashboard() {
     </div>
   </div>
 
-  <div className="action-grid">
-    <button className="btn" onClick={() => nav("/all-items")}>All Items</button>
-    <button className="btn" onClick={() => { setStoreId(null); nav("/stores"); }}>Switch Store</button>
-    <button className="btn" onClick={() => nav("/admin/submissions")}>View Submissions</button>
-    <button className="btn primary" onClick={() => nav("/admin/items")}>Manage Items</button>
+  {/* ✅ one clean action grid (no duplicates) */}
+  <div className="action-grid-2">
     <button className="btn" onClick={() => nav("/admin/reports")}>Reports</button>
 
+    <button className="btn" onClick={() => nav("/admin/employees")}>Employees</button>
+    <button className="btn" onClick={() => nav("/admin/stores")}>Stores</button>
+
+    <button className="btn ghost" onClick={() => nav("/all-items")}>All Items</button>
   </div>
 </div>
 
@@ -182,6 +199,8 @@ export default function AdminDashboard() {
 </div>
 
       )}
+      <AdminQuickBar />
+
     </div>
   );
 }

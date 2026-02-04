@@ -12,6 +12,11 @@ import AdminSubmissions from "./pages/AdminSubmissions";
 import ManageItems from "./pages/ManageItems";
 import AdminSubmissionDetail from "./pages/AdminSubmissionDetail";
 import AdminReports from "./pages/AdminReports";
+import ManageStores from "./pages/ManageStores";
+import ManageEmployees from "./pages/ManageEmployees";
+import AdminDailySummary from "./pages/AdminDailySummary";
+
+
 
 
 
@@ -51,6 +56,15 @@ export default function App() {
                 </RequireAuth>
               }
             />
+            <Route
+  path="/admin/employees"
+  element={
+    <RequireAuth>
+      <ManageEmployees />
+    </RequireAuth>
+  }
+/>
+
 
           <Route
             path="/admin/reports"
@@ -60,6 +74,25 @@ export default function App() {
               </RequireAuth>
             }
           />
+          <Route
+  path="/admin/stores"
+  element={
+    <RequireAuth>
+      <ManageStores />
+    </RequireAuth>
+  }
+/>
+
+<Route
+  path="/admin/summary"
+  element={
+    <RequireAuth>
+      <AdminDailySummary />
+    </RequireAuth>
+  }
+/>
+
+
 
 
             <Route

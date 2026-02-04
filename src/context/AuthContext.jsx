@@ -14,6 +14,9 @@ export function AuthProvider({ children }) {
     const unsub = onAuthStateChanged(auth, async (u) => {
       setFbUser(u);
 
+      // ✅ DEBUG: show who is logged in
+      console.log("AUTH USER:", u ? { uid: u.uid, email: u.email } : null);
+
       if (!u) {
         setProfile(null);
         setLoading(false);
@@ -21,9 +24,22 @@ export function AuthProvider({ children }) {
       }
 
       try {
-        const snap = await getDoc(doc(db, "users", u.uid));
+        const ref = doc(db, "users", u.uid);
+        const snap = await getDoc(ref);
+
+        // ✅ DEBUG: show whether profile doc exists
+        console.log("PROFILE DOC EXISTS?", snap.exists(), "DOC_ID:", u.uid);
+
         setProfile(snap.exists() ? snap.data() : null);
-      } catch {
+
+        // ✅ DEBUG: show profile data if exists
+        if (snap.exists()) {
+          console.log("PROFILE DATA:", snap.data());
+        } else {
+          console.warn("No users/{uid} doc found. Create doc with this ID:", u.uid);
+        }
+      } catch (err) {
+        console.error("FAILED TO READ users/{uid}:", err);
         setProfile(null);
       } finally {
         setLoading(false);
