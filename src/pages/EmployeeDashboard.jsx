@@ -14,8 +14,6 @@ import { useAuth } from "../context/AuthContext";
 import { useStore } from "../context/StoreContext";
 
 import ConfirmModal from "../components/ConfirmModal";
-
-
 import EmployeeTopBar from "../components/EmployeeTopBar";
 import SideMenu from "../components/SideMenu";
 
@@ -51,7 +49,7 @@ export default function EmployeeDashboard() {
   const [search, setSearch] = useState("");
 
   const [dirty, setDirty] = useState(false);
-
+  const [openCats, setOpenCats] = useState(() => ({})); // { categoryName: boolean }
 
   const [items, setItems] = useState([]);
   const [values, setValues] = useState({}); // itemId -> { quantity, unit }
@@ -67,17 +65,30 @@ export default function EmployeeDashboard() {
     confirmText: "OK",
   });
 
-  // daily submission state
-  const [todaySubmission, setTodaySubmission] = useState(null);
   const [hasSubmittedToday, setHasSubmittedToday] = useState(false);
 
-  // ✅ Sorting: prevent jump while typing
+  // prevent jump typing
   const [sortVersion, setSortVersion] = useState(0);
 
   const ymd = todayYMD();
   const submissionDocRef = storeId
     ? doc(db, "stores", storeId, "stockSubmissions", ymd)
     : null;
+
+  // ✅ step +/- always 1
+  function stepQty(itemId, delta) {
+    setDirty(true);
+    setValues((prev) => {
+      const curRaw = prev[itemId]?.quantity ?? "";
+      const cur = curRaw === "" ? 0 : Number(String(curRaw).replace(",", "."));
+      const next = Math.max(0, (Number.isNaN(cur) ? 0 : cur) + delta);
+      return {
+        ...prev,
+        [itemId]: { ...prev[itemId], quantity: String(next) },
+      };
+    });
+    setSortVersion((x) => x + 1);
+  }
 
   // ✅ Live items list
   useEffect(() => {
@@ -113,54 +124,60 @@ export default function EmployeeDashboard() {
         return next;
       });
 
+      // open categories by default when first load
+      // setOpenCats((prev) => {
+      //   if (Object.keys(prev).length) return prev;
+      //   const cats = {};
+      //   for (const it of list) {
+      //     const c = it.category || "Uncategorized";
+      //     cats[c] = true;
+      //   }
+      //   return cats;
+      // });
+
       setLoading(false);
     });
 
     return () => unsub();
   }, [storeId, nav]);
 
-  // ✅ Live “today submission” (single doc per day)
+  // ✅ Live “today submission”
   useEffect(() => {
     if (!submissionDocRef) return;
 
     const unsub = onSnapshot(submissionDocRef, (snap) => {
       if (!snap.exists()) {
-        setTodaySubmission(null);
         setHasSubmittedToday(false);
         return;
       }
 
       const data = snap.data();
-      setTodaySubmission({ id: snap.id, ...data });
       setHasSubmittedToday(true);
 
-      // Prefill ONLY when user is not currently typing/editing
-if (!dirty && data?.items) {
-    setValues((prev) => {
-      const next = { ...prev };
-      for (const [itemId, v] of Object.entries(data.items)) {
-        next[itemId] = {
-          // keep as string for input field
-          quantity: v?.quantity === 0 ? "0" : String(v?.quantity ?? ""),
-          unit: v?.unit ?? next[itemId]?.unit ?? "piece",
-        };
+      // prefill only when not editing
+      if (!dirty && data?.items) {
+        setValues((prev) => {
+          const next = { ...prev };
+          for (const [itemId, v] of Object.entries(data.items)) {
+            next[itemId] = {
+              quantity: v?.quantity === 0 ? "0" : String(v?.quantity ?? ""),
+              unit: v?.unit ?? next[itemId]?.unit ?? "piece",
+            };
+          }
+          return next;
+        });
       }
-      return next;
-    });
-  }
-  
     });
 
     return () => unsub();
-}, [submissionDocRef, dirty]);
-
+  }, [submissionDocRef, dirty]);
 
   const computed = useMemo(() => {
     const out = {};
     for (const it of items) {
       const raw = values[it.id]?.quantity ?? "";
       const unit = values[it.id]?.unit ?? it.defaultUnit ?? "piece";
-      const qty = raw === "" ? null : Number(raw);
+      const qty = raw === "" ? null : Number(String(raw).replace(",", "."));
 
       out[it.id] = {
         qty,
@@ -174,7 +191,6 @@ if (!dirty && data?.items) {
     return out;
   }, [items, values]);
 
-  // ✅ Progress tracker
   const progress = useMemo(() => {
     const total = items.length;
     let done = 0;
@@ -199,16 +215,13 @@ if (!dirty && data?.items) {
     return true;
   }, [items, computed]);
 
-  // ✅ Search + sorting (but sorting only updates on blur via sortVersion)
   const filteredItems = useMemo(() => {
     const s = search.trim().toLowerCase();
-    const base = !s
-      ? items
-      : items.filter((it) => it.name.toLowerCase().includes(s));
+    const base = !s ? items : items.filter((it) => it.name.toLowerCase().includes(s));
 
     const rank = (it) => {
       const status = computed[it.id]?.status;
-      if (status == null) return 0; // not entered first
+      if (status == null) return 0;
       if (status === "out_of_stock") return 1;
       if (status === "need_stock") return 2;
       if (status === "in_stock") return 3;
@@ -221,139 +234,156 @@ if (!dirty && data?.items) {
       if (ra !== rb) return ra - rb;
       return a.name.localeCompare(b.name);
     });
-  }, [items, search, sortVersion]); // ✅ no jump typing
+  }, [items, search, sortVersion, computed]);
+
+  const grouped = useMemo(() => {
+    const map = new Map();
+
+    const list = filteredItems.map((it) => ({
+      ...it,
+      category: it.category || "Uncategorized",
+      categoryOrder: typeof it.categoryOrder === "number" ? it.categoryOrder : 999,
+    }));
+
+    for (const it of list) {
+      const key = it.category;
+      if (!map.has(key)) map.set(key, { name: key, order: it.categoryOrder, items: [] });
+      map.get(key).items.push(it);
+    }
+
+    for (const g of map.values()) {
+      g.items.sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999));
+    }
+
+    return Array.from(map.values()).sort((a, b) => {
+      if (a.order !== b.order) return a.order - b.order;
+      return a.name.localeCompare(b.name);
+    });
+  }, [filteredItems]);
 
   async function reallySubmitOrUpdate() {
     if (!storeId || !submissionDocRef) return;
-  
+
     setSaving(true);
     setMsg("");
-  
+
     try {
-            // compute submission payload
-            let lowCount = 0;
-            let outCount = 0;
-            const submissionItems = {};
-      
-            for (const it of items) {
-              const c = computed[it.id];
-              const status = c.status || "in_stock";
-      
-              submissionItems[it.id] = {
-                quantity: c.qty,
-                unit: c.unit,
-                status,
-              };
-      
-              if (status === "out_of_stock") outCount++;
-              if (status === "need_stock") lowCount++;
-            }
-      
-            // check existence for race safety
-            const existing = await getDoc(submissionDocRef);
-            const existsNow = existing.exists();
-            const finalIsEdit = existsNow; // if already exists, treat as edit
-      
-            const batch = writeBatch(db);
-      
-            // update currentStock live
-            for (const it of items) {
-              const c = computed[it.id];
-              const status = c.status || "in_stock";
-      
-              const stockRef = doc(db, "stores", storeId, "currentStock", it.id);
-              batch.set(
-                stockRef,
-                {
-                  quantity: c.qty,
-                  unit: c.unit,
-                  status,
-                  updatedAt: serverTimestamp(),
-                  updatedByEmployeeId: profile?.employeeId || "unknown",
-                  updatedByName: profile?.name || profile?.employeeId || "Employee",
-                },
-                { merge: true }
-              );
-            }
-      
-            if (!finalIsEdit) {
-              // first submit of day
-              batch.set(
-                submissionDocRef,
-                {
-                  submittedAt: serverTimestamp(),
-                  submittedDate: ymd,
-                  submittedByEmployeeId: profile?.employeeId || "unknown",
-                  submittedByName: profile?.name || profile?.employeeId || "Employee",
-      
-                  lastEditedAt: null,
-                  lastEditedByEmployeeId: null,
-                  lastEditedByName: null,
-      
-                  isReadByAdmin: false,
-                  needsAdminReview: false,
-      
-                  lowOutSummary: { lowCount, outCount },
-                  items: submissionItems,
-                },
-                { merge: true }
-              );
-            } else {
-              // edit existing
-              batch.set(
-                submissionDocRef,
-                {
-                  lastEditedAt: serverTimestamp(),
-                  lastEditedByEmployeeId: profile?.employeeId || "unknown",
-                  lastEditedByName: profile?.name || profile?.employeeId || "Employee",
-      
-                  // force admin to see the change
-                  isReadByAdmin: false,
-                  needsAdminReview: true,
-      
-                  lowOutSummary: { lowCount, outCount },
-                  items: submissionItems,
-                },
-                { merge: true }
-              );
-            }
-      
-            await batch.commit();
+      let lowCount = 0;
+      let outCount = 0;
+      const submissionItems = {};
 
-            if (finalIsEdit) {
-            await addDoc(
-                collection(db, "stores", storeId, "stockSubmissions", ymd, "revisions"),
-                {
-                editedAt: serverTimestamp(),
-                editedByEmployeeId: profile?.employeeId || "unknown",
-                editedByName: profile?.name || profile?.employeeId || "Employee",
-                items: submissionItems,
-                lowOutSummary: { lowCount, outCount },
-                }
-            );
-            }
+      for (const it of items) {
+        const c = computed[it.id];
+        const status = c.status || "in_stock";
 
-        setDirty(false);
-        setMsg(finalIsEdit ? "Updated ✅ Admin will review changes." : "Submitted ✅ End of shift saved.");
-        } catch (e) {
-        console.error(e);
-        setMsg(e?.message || "Save failed.");
-        } finally {
-        setSaving(false);
-        }
+        submissionItems[it.id] = {
+          quantity: c.qty,
+          unit: c.unit,
+          status,
+        };
+
+        if (status === "out_of_stock") outCount++;
+        if (status === "need_stock") lowCount++;
+      }
+
+      const existing = await getDoc(submissionDocRef);
+      const finalIsEdit = existing.exists();
+
+      const batch = writeBatch(db);
+
+      for (const it of items) {
+        const c = computed[it.id];
+        const status = c.status || "in_stock";
+
+        const stockRef = doc(db, "stores", storeId, "currentStock", it.id);
+        batch.set(
+          stockRef,
+          {
+            quantity: c.qty,
+            unit: c.unit,
+            status,
+            updatedAt: serverTimestamp(),
+            updatedByEmployeeId: profile?.employeeId || "unknown",
+            updatedByName: profile?.name || profile?.employeeId || "Employee",
+          },
+          { merge: true }
+        );
+      }
+
+      if (!finalIsEdit) {
+        batch.set(
+          submissionDocRef,
+          {
+            submittedAt: serverTimestamp(),
+            submittedDate: ymd,
+            submittedByEmployeeId: profile?.employeeId || "unknown",
+            submittedByName: profile?.name || profile?.employeeId || "Employee",
+
+            lastEditedAt: null,
+            lastEditedByEmployeeId: null,
+            lastEditedByName: null,
+
+            isReadByAdmin: false,
+            needsAdminReview: false,
+
+            lowOutSummary: { lowCount, outCount },
+            items: submissionItems,
+          },
+          { merge: true }
+        );
+      } else {
+        batch.set(
+          submissionDocRef,
+          {
+            lastEditedAt: serverTimestamp(),
+            lastEditedByEmployeeId: profile?.employeeId || "unknown",
+            lastEditedByName: profile?.name || profile?.employeeId || "Employee",
+
+            isReadByAdmin: false,
+            needsAdminReview: true,
+
+            lowOutSummary: { lowCount, outCount },
+            items: submissionItems,
+          },
+          { merge: true }
+        );
+      }
+
+      await batch.commit();
+
+      if (finalIsEdit) {
+        await addDoc(
+          collection(db, "stores", storeId, "stockSubmissions", ymd, "revisions"),
+          {
+            editedAt: serverTimestamp(),
+            editedByEmployeeId: profile?.employeeId || "unknown",
+            editedByName: profile?.name || profile?.employeeId || "Employee",
+            items: submissionItems,
+            lowOutSummary: { lowCount, outCount },
+          }
+        );
+      }
+
+      setDirty(false);
+      setMsg(finalIsEdit ? "Updated ✅ Admin will review changes." : "Submitted ✅ End of shift saved.");
+    } catch (e) {
+      console.error(e);
+      setMsg(e?.message || "Save failed.");
+    } finally {
+      setSaving(false);
     }
+  }
 
   async function submitOrUpdateShift() {
     setMsg("");
-  
+
     if (!canSubmit) {
       setMsg("Please fill all quantities before submitting.");
       return;
     }
-  
+
     const isEditMode = hasSubmittedToday;
-  
-    // ✅ Set modal text depending on Submit or Update
+
     setConfirmData({
       title: isEditMode ? "Update submission?" : "Submit end of shift?",
       message: isEditMode
@@ -361,19 +391,17 @@ if (!dirty && data?.items) {
         : "Submit today’s end-of-shift stock count now?",
       confirmText: isEditMode ? "Update" : "Submit",
     });
-  
-    // ✅ open modal
+
     setConfirmOpen(true);
   }
-  
 
   return (
     <div className="page">
       <EmployeeTopBar title="End-of-shift Stock" onMenu={() => setMenuOpen(true)} />
 
-      {/* Header + Progress + Search */}
+      {/* Header */}
       <div className="card" style={{ marginBottom: 12 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+        <div className="empHeaderRow">
           <div>
             <div style={{ fontWeight: 900 }}>
               {hasSubmittedToday ? "Today submitted ✅ (Edit mode)" : "Not submitted yet"}
@@ -383,8 +411,8 @@ if (!dirty && data?.items) {
             </div>
           </div>
 
-          <div style={{ textAlign: "right" }}>
-            <div style={{ fontWeight: 900 }}>{progress.done}/{progress.total}</div>
+          <div className="empHeaderRight">
+            <div className="empHeaderBig">{progress.done}/{progress.total}</div>
             <div className="muted" style={{ margin: 0, fontSize: 13 }}>
               {progress.missing} missing • {progress.percent}%
             </div>
@@ -400,78 +428,120 @@ if (!dirty && data?.items) {
         />
       </div>
 
+      {/* Categories */}
       {loading ? (
         <div className="muted">Loading items…</div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {filteredItems.map((it) => {
-            const v = values[it.id];
-            const c = computed[it.id];
-            const b = statusBadge(c?.status);
+        <div className="empList">
+          {grouped.map((group) => {
+            // const isOpen = openCats[group.name] ?? true;
+            const isOpen = !!openCats[group.name];
 
             return (
-              <div
-                key={it.id}
-                className="card"
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: 12,
-                }}
-              >
-                <div style={{ minWidth: "55%" }}>
-                  <div style={{ fontWeight: 900 }}>{it.name}</div>
-                  {b ? (
-                    <div className={b.cls} style={{ marginTop: 6 }}>{b.text}</div>
-                  ) : (
-                    <div className="muted" style={{ fontSize: 13, marginTop: 6 }}>
-                      Enter qty
-                    </div>
-                  )}
-                </div>
+              <div key={group.name} className="card category-card">
+                <button
+                  className="category-header"
+                  onClick={() => setOpenCats((prev) => ({ ...prev, [group.name]: !isOpen }))}
+                >
+                  <span>
+                    {group.name} <span className="category-count">({group.items.length})</span>
+                  </span>
+                  <span className="category-arrow">{isOpen ? "▾" : "▸"}</span>
+                </button>
+                
 
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <input
-                    className="input"
-                    style={{ width: 90, textAlign: "center" }}
-                    placeholder="0"
-                    inputMode="numeric"
-                    value={v?.quantity ?? ""}
-                    onChange={(e) => {
-                        setDirty(true);
-                        setValues((prev) => ({
-                          ...prev,
-                          [it.id]: { ...prev[it.id], quantity: e.target.value },
-                        }));
-                      }}
-                      
-                    // ✅ only re-sort after they finish editing (prevents page jump)
-                    onBlur={() => setSortVersion((x) => x + 1)}
-                  />
+                {isOpen && (
+                  <div className="category-items">
+                    {group.items.map((it) => {
+                      const v = values[it.id];
+                      const c = computed[it.id];
+                      const b = statusBadge(c?.status);
 
-                  <select
-                    className="input"
-                    style={{ width: 120 }}
-                    value={v?.unit ?? it.defaultUnit ?? "piece"}
-                    onChange={(e) => {
-                        setDirty(true);
-                        setValues((prev) => ({
-                          ...prev,
-                          [it.id]: { ...prev[it.id], unit: e.target.value },
-                        }));
-                        setSortVersion((x) => x + 1);
-                      }}
+                      return (
+                        <div key={it.id} className="item-row">
+                          {/* LEFT */}
+                          <div className="item-left">
+                            <div className="item-name">{it.name}</div>
+                            {b ? (
+                              <div className={b.cls}>{b.text}</div>
+                            ) : (
+                              <div className="muted" style={{ fontSize: 13 }}>Enter qty</div>
+                            )}
+                          </div>
                       
-                  >
-                    {it.defaultUnit && !UNIT_OPTIONS.includes(it.defaultUnit) ? (
-                      <option value={it.defaultUnit}>{it.defaultUnit}</option>
-                    ) : null}
-                    {UNIT_OPTIONS.map((u) => (
-                      <option key={u} value={u}>{u}</option>
-                    ))}
-                  </select>
-                </div>
+                          {/* RIGHT */}
+                          <div className="item-right">
+                            <button
+                              type="button"
+                              className="iconBtn"
+                              onClick={() => stepQty(it.id, -1)}
+                            >
+                              −
+                            </button>
+                      
+                            <input
+                              className="qtyBox"
+                              type="text"
+                              inputMode="decimal"
+                              placeholder="0"
+                              value={v?.quantity ?? ""}
+                              onChange={(e) => {
+                                // allow decimal typing
+                                let x = e.target.value;
+                      
+                                // allow comma too (convert to dot)
+                                x = x.replace(",", ".");
+                      
+                                // keep only digits and dot
+                                x = x.replace(/[^0-9.]/g, "");
+                      
+                                // only 1 dot
+                                const parts = x.split(".");
+                                if (parts.length > 2) x = parts[0] + "." + parts.slice(1).join("");
+                      
+                                setDirty(true);
+                                setValues((prev) => ({
+                                  ...prev,
+                                  [it.id]: { ...prev[it.id], quantity: x },
+                                }));
+                              }}
+                              onBlur={() => setSortVersion((x) => x + 1)}
+                            />
+                      
+                            <button
+                              type="button"
+                              className="iconBtn"
+                              onClick={() => stepQty(it.id, +1)}
+                            >
+                              +
+                            </button>
+                      
+                            <select
+                              className="unitSelect"
+                              value={v?.unit ?? it.defaultUnit ?? "piece"}
+                              onChange={(e) => {
+                                setDirty(true);
+                                setValues((prev) => ({
+                                  ...prev,
+                                  [it.id]: { ...prev[it.id], unit: e.target.value },
+                                }));
+                                setSortVersion((x) => x + 1);
+                              }}
+                            >
+                              {it.defaultUnit && !UNIT_OPTIONS.includes(it.defaultUnit) ? (
+                                <option value={it.defaultUnit}>{it.defaultUnit}</option>
+                              ) : null}
+                              {UNIT_OPTIONS.map((u) => (
+                                <option key={u} value={u}>{u}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      );
+                      
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -481,8 +551,7 @@ if (!dirty && data?.items) {
       {msg ? <div className="muted" style={{ marginTop: 12 }}>{msg}</div> : null}
 
       <button
-        className="btn primary"
-        style={{ position: "fixed", left: 16, right: 16, bottom: 16 }}
+        className="btn primary empSubmitBtn"
         disabled={!canSubmit || saving}
         onClick={submitOrUpdateShift}
       >
@@ -496,19 +565,19 @@ if (!dirty && data?.items) {
         onSwitchStore={() => { setMenuOpen(false); nav("/stores"); }}
         onLogout={async () => { setMenuOpen(false); await logout(); nav("/"); }}
       />
-      <ConfirmModal
-  open={confirmOpen}
-  title={confirmData.title}
-  message={confirmData.message}
-  confirmText={confirmData.confirmText}
-  cancelText="Cancel"
-  onCancel={() => setConfirmOpen(false)}
-  onConfirm={async () => {
-    setConfirmOpen(false);
-    await reallySubmitOrUpdate();
-  }}
-/>
 
+      <ConfirmModal
+        open={confirmOpen}
+        title={confirmData.title}
+        message={confirmData.message}
+        confirmText={confirmData.confirmText}
+        cancelText="Cancel"
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={async () => {
+          setConfirmOpen(false);
+          await reallySubmitOrUpdate();
+        }}
+      />
     </div>
   );
 }
