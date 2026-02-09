@@ -180,7 +180,7 @@ export default function AdminDashboard() {
       ) : (
         <div className="adminList">
           {groupedLowOut.map((group) => {
-            const isOpen = openCats[group.name] ?? true;
+            const isOpen = openCats[group.name] ?? false;
 
             return (
               <div key={group.name} className="catBlock">
