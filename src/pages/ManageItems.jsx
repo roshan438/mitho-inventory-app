@@ -17,6 +17,13 @@ import { useAuth } from "../context/AuthContext";
 
 const UNIT_OPTIONS = ["kg", "packet", "bottle", "piece", "cup", "portion", "litre"];
 
+const CATEGORY_OTHER = "__other__";
+
+function normCat(s) {
+  return String(s || "").trim();
+}
+
+
 function groupByCategory(list) {
   const map = new Map();
 
@@ -53,6 +60,8 @@ export default function ManageItems() {
   const [unit, setUnit] = useState("piece");
   const [threshold, setThreshold] = useState("2");
   const [category, setCategory] = useState("");
+const [categoryMode, setCategoryMode] = useState("select"); // select | other
+const [categoryOther, setCategoryOther] = useState("");
 
   // edit
   const [editingId, setEditingId] = useState(null);
@@ -60,6 +69,8 @@ export default function ManageItems() {
   const [editThreshold, setEditThreshold] = useState("2");
   const [editActive, setEditActive] = useState(true);
   const [editCategory, setEditCategory] = useState("Uncategorized");
+  const [editCategoryMode, setEditCategoryMode] = useState("select");
+  const [editCategoryOther, setEditCategoryOther] = useState("");
 
   // category accordion open/close
   const [openCats, setOpenCats] = useState(() => ({})); // { "active:Veg": true, "inactive:Veg": false }
@@ -94,6 +105,18 @@ export default function ManageItems() {
   const groupedActive = useMemo(() => groupByCategory(activeItems), [activeItems]);
   const groupedInactive = useMemo(() => groupByCategory(inactiveItems), [inactiveItems]);
 
+  const categories = useMemo(() => {
+    const set = new Set();
+    for (const it of items) {
+      const c = normCat(it.category);
+      if (c) set.add(c);
+    }
+    // keep stable / nice order
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [items]);
+  
+  
+
   async function refresh() {
     const snap = await getDocs(
       query(collection(db, "stores", storeId, "items"), orderBy("sortOrder", "asc"))
@@ -106,6 +129,8 @@ export default function ManageItems() {
 
     const n = name.trim();
     const t = Number(threshold);
+    const finalCat = categoryMode === "other" ? normCat(categoryOther) : normCat(category);
+
 
     if (!n) return setMsg("Item name required.");
     if (Number.isNaN(t) || t < 0) return setMsg("Threshold must be a number (0 or more).");
@@ -113,7 +138,7 @@ export default function ManageItems() {
     try {
       const ref = await addDoc(collection(db, "stores", storeId, "items"), {
         name: n,
-        category: category.trim() || "Uncategorized",
+        category: finalCat || "Uncategorized",
         defaultUnit: unit,
         lowStockThreshold: t,
         isActive: true,
@@ -124,8 +149,10 @@ export default function ManageItems() {
       setName("");
       setUnit("piece");
       setThreshold("2");
-      setCategory("");
+      setCategory("Custom");
       setMsg("Added ✅");
+      setCategoryMode("select");
+      setCategoryOther("");
       await refresh();
 
       // optional: auto open edit
@@ -137,6 +164,18 @@ export default function ManageItems() {
   }
 
   function startEdit(item) {
+    const c = normCat(item.category) || "Uncategorized";
+    setEditCategory(c);
+
+    // if category not in dropdown list, switch to "other"
+    if (categories.includes(c)) {
+      setEditCategoryMode("select");
+      setEditCategoryOther("");
+    } else {
+      setEditCategoryMode("other");
+      setEditCategoryOther(c);
+    }
+
     setEditingId(item.id);
     setEditUnit(item.defaultUnit || "piece");
     setEditThreshold(String(item.lowStockThreshold ?? 2));
@@ -146,8 +185,13 @@ export default function ManageItems() {
   }
 
   async function saveEdit() {
+
+    const finalCat =
+  editCategoryMode === "other" ? normCat(editCategoryOther) : normCat(editCategory);
+
     if (!editingId) return;
     setMsg("");
+    
 
     const t = Number(editThreshold);
     if (Number.isNaN(t) || t < 0) return setMsg("Threshold must be a number (0 or more).");
@@ -157,7 +201,7 @@ export default function ManageItems() {
         defaultUnit: editUnit,
         lowStockThreshold: t,
         isActive: !!editActive,
-        category: editCategory.trim() || "Uncategorized",
+        category: finalCat || "Uncategorized",
         updatedAt: serverTimestamp(),
       });
 
@@ -234,13 +278,46 @@ export default function ManageItems() {
           placeholder="New item name"
         />
 
-        <label className="label">Category</label>
-        <input
-          className="input"
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          placeholder="e.g. meat, veg, sauces"
-        />
+<select
+  className="input"
+  value={categoryMode === "other" ? CATEGORY_OTHER : category}
+  onChange={(e) => {
+    const v = e.target.value;
+    if (v === CATEGORY_OTHER) {
+      setCategoryMode("other");
+      setCategoryOther("");
+    } else {
+      setCategoryMode("select");
+      setCategory(v);
+      setCategoryOther("");
+    }
+  }}
+>
+  {/* common defaults first */}
+  <option value="custom">custom</option>
+  <option value="momo">momo</option>
+  <option value="chowmein">chowmein</option>
+  <option value="sauces">sauces</option>
+  <option value="drinks">drinks</option>
+
+  {/* existing categories from DB */}
+  {categories
+    .filter((c) => !["custom","momo","chowmein","sauces","drinks"].includes(c))
+    .map((c) => (
+      <option key={c} value={c}>{c}</option>
+    ))}
+
+  <option value={CATEGORY_OTHER}>+ Add new category…</option>
+</select>
+{categoryMode === "other" ? (
+  <input
+    className="input"
+    style={{ marginTop: 8 }}
+    value={categoryOther}
+    onChange={(e) => setCategoryOther(e.target.value)}
+    placeholder="Type new category name"
+  />
+) : null}
 
         <div style={{ display: "flex", gap: 10 }}>
           <div style={{ flex: 1 }}>
@@ -318,15 +395,95 @@ export default function ManageItems() {
                               <div style={{ fontWeight: 900 }}>Edit: {it.name}</div>
 
                               <label className="label">Category</label>
-                              <input
-                                className="input"
-                                value={editCategory}
-                                onChange={(e) => setEditCategory(e.target.value)}
-                                placeholder="e.g. meat, veg, sauces"
-                              />
+
+<select
+  className="input"
+  value={categoryMode === "other" ? CATEGORY_OTHER : category}
+  onChange={(e) => {
+    const v = e.target.value;
+    if (v === CATEGORY_OTHER) {
+      setCategoryMode("other");
+      setCategoryOther("");
+    } else {
+      setCategoryMode("select");
+      setCategory(v);
+      setCategoryOther("");
+    }
+  }}
+>
+  {/* common defaults first */}
+  <option value="custom">custom</option>
+  <option value="momo">momo</option>
+  <option value="chowmein">chowmein</option>
+  <option value="sauces">sauces</option>
+  <option value="drinks">drinks</option>
+
+  {/* existing categories from DB */}
+  {categories
+    .filter((c) => !["custom","momo","chowmein","sauces","drinks"].includes(c))
+    .map((c) => (
+      <option key={c} value={c}>{c}</option>
+    ))}
+
+  <option value={CATEGORY_OTHER}>+ Add new category…</option>
+</select>
+
+{categoryMode === "other" ? (
+  <input
+    className="input"
+    style={{ marginTop: 8 }}
+    value={categoryOther}
+    onChange={(e) => setCategoryOther(e.target.value)}
+    placeholder="Type new category name"
+  />
+) : null}
+
 
                               <div style={{ display: "flex", gap: 10 }}>
                                 <div style={{ flex: 1 }}>
+                                <label className="label">Category</label>
+
+<select
+  className="input"
+  value={editCategoryMode === "other" ? CATEGORY_OTHER : editCategory}
+  onChange={(e) => {
+    const v = e.target.value;
+    if (v === CATEGORY_OTHER) {
+      setEditCategoryMode("other");
+      setEditCategoryOther(editCategory || "");
+    } else {
+      setEditCategoryMode("select");
+      setEditCategory(v);
+      setEditCategoryOther("");
+    }
+  }}
+>
+  {/* common defaults */}
+  <option value="custom">custom</option>
+  <option value="momo">momo</option>
+  <option value="chowmein">chowmein</option>
+  <option value="sauces">sauces</option>
+  <option value="drinks">drinks</option>
+
+  {categories
+    .filter((c) => !["custom","momo","chowmein","sauces","drinks"].includes(c))
+    .map((c) => (
+      <option key={c} value={c}>{c}</option>
+    ))}
+
+  <option value={CATEGORY_OTHER}>+ Add new category…</option>
+</select>
+
+{editCategoryMode === "other" ? (
+  <input
+    className="input"
+    style={{ marginTop: 8 }}
+    value={editCategoryOther}
+    onChange={(e) => setEditCategoryOther(e.target.value)}
+    placeholder="Type new category name"
+  />
+) : null}
+
                                   <label className="label">Unit</label>
                                   <select className="input" value={editUnit} onChange={(e) => setEditUnit(e.target.value)}>
                                     {UNIT_OPTIONS.map((u) => (
