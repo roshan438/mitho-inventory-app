@@ -56,10 +56,11 @@ export default function Login() {
         <label className="label">Employee ID</label>
         <input
           className="input"
-          placeholder="EMP01"
+          placeholder="Your Name"
           value={employeeId}
           onChange={(e) => setEmployeeId(e.target.value)}
           autoCapitalize="characters"
+          autoComplete="username"
         />
 
         <label className="label">4-digit PIN</label>
@@ -70,6 +71,8 @@ export default function Login() {
           onChange={(e) => setPin(e.target.value)}
           inputMode="numeric"
           maxLength={4}
+          type="password"
+          autoComplete="current-password"
         />
 
         {err ? <div className="error">{err}</div> : null}
