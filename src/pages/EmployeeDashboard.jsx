@@ -54,6 +54,8 @@ export default function EmployeeDashboard() {
   const [items, setItems] = useState([]);
   const [values, setValues] = useState({}); // itemId -> { quantity, unit }
 
+  const [currentStockMap, setCurrentStockMap] = useState({}); // itemId -> { quantity, unit }
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
@@ -124,22 +126,32 @@ export default function EmployeeDashboard() {
         return next;
       });
 
-      // open categories by default when first load
-      // setOpenCats((prev) => {
-      //   if (Object.keys(prev).length) return prev;
-      //   const cats = {};
-      //   for (const it of list) {
-      //     const c = it.category || "Uncategorized";
-      //     cats[c] = true;
-      //   }
-      //   return cats;
-      // });
-
       setLoading(false);
     });
 
     return () => unsub();
   }, [storeId, nav]);
+
+  // ✅ NEW: Live latest currentStock (this is what we use for tomorrow defaults)
+  useEffect(() => {
+    if (!storeId) return;
+
+    const unsub = onSnapshot(
+      collection(db, "stores", storeId, "currentStock"),
+      (snap) => {
+        const map = {};
+        snap.docs.forEach((d) => {
+          map[d.id] = d.data(); // {quantity, unit, ...}
+        });
+        setCurrentStockMap(map);
+      },
+      (err) => {
+        console.error(err);
+      }
+    );
+
+    return () => unsub();
+  }, [storeId]);
 
   // ✅ Live “today submission”
   useEffect(() => {
@@ -171,6 +183,42 @@ export default function EmployeeDashboard() {
 
     return () => unsub();
   }, [submissionDocRef, dirty]);
+
+  // ✅ NEW: If today is NOT submitted yet, prefill from currentStock
+  useEffect(() => {
+    if (!items.length) return;
+    if (dirty) return; // never overwrite while typing
+    if (hasSubmittedToday) return; // today submission already controls the UI
+
+    // Prefill from currentStock only if the input is empty
+    setValues((prev) => {
+      const next = { ...prev };
+
+      for (const it of items) {
+        const existingQty = next[it.id]?.quantity ?? "";
+        const existingUnit = next[it.id]?.unit ?? it.defaultUnit ?? "piece";
+
+        // only fill if empty (so we don't override something)
+        if (existingQty === "") {
+          const cs = currentStockMap[it.id];
+          if (cs && cs.quantity !== undefined && cs.quantity !== null) {
+            next[it.id] = {
+              quantity: cs.quantity === 0 ? "0" : String(cs.quantity),
+              unit: cs.unit || existingUnit,
+            };
+          } else {
+            // if no stock record, keep blank quantity but ensure unit
+            next[it.id] = { quantity: "", unit: existingUnit };
+          }
+        } else {
+          // keep existing typed value, but keep unit stable
+          next[it.id] = { quantity: existingQty, unit: existingUnit };
+        }
+      }
+
+      return next;
+    });
+  }, [items, currentStockMap, dirty, hasSubmittedToday]);
 
   const computed = useMemo(() => {
     const out = {};
@@ -409,6 +457,11 @@ export default function EmployeeDashboard() {
             <div className="muted" style={{ margin: 0 }}>
               {profile?.name || profile?.employeeId} • {ymd}
             </div>
+            {!hasSubmittedToday ? (
+              <div className="muted" style={{ margin: "6px 0 0", fontSize: 13 }}>
+                Prefilled from latest stock ✅ (edit only what changed)
+              </div>
+            ) : null}
           </div>
 
           <div className="empHeaderRight">
@@ -434,7 +487,6 @@ export default function EmployeeDashboard() {
       ) : (
         <div className="empList">
           {grouped.map((group) => {
-            // const isOpen = openCats[group.name] ?? true;
             const isOpen = !!openCats[group.name];
 
             return (
@@ -448,7 +500,6 @@ export default function EmployeeDashboard() {
                   </span>
                   <span className="category-arrow">{isOpen ? "▾" : "▸"}</span>
                 </button>
-                
 
                 {isOpen && (
                   <div className="category-items">
@@ -468,7 +519,7 @@ export default function EmployeeDashboard() {
                               <div className="muted" style={{ fontSize: 13 }}>Enter qty</div>
                             )}
                           </div>
-                      
+
                           {/* RIGHT */}
                           <div className="item-right">
                             <button
@@ -478,7 +529,7 @@ export default function EmployeeDashboard() {
                             >
                               −
                             </button>
-                      
+
                             <input
                               className="qtyBox"
                               type="text"
@@ -486,19 +537,12 @@ export default function EmployeeDashboard() {
                               placeholder="0"
                               value={v?.quantity ?? ""}
                               onChange={(e) => {
-                                // allow decimal typing
                                 let x = e.target.value;
-                      
-                                // allow comma too (convert to dot)
                                 x = x.replace(",", ".");
-                      
-                                // keep only digits and dot
                                 x = x.replace(/[^0-9.]/g, "");
-                      
-                                // only 1 dot
                                 const parts = x.split(".");
                                 if (parts.length > 2) x = parts[0] + "." + parts.slice(1).join("");
-                      
+
                                 setDirty(true);
                                 setValues((prev) => ({
                                   ...prev,
@@ -507,7 +551,7 @@ export default function EmployeeDashboard() {
                               }}
                               onBlur={() => setSortVersion((x) => x + 1)}
                             />
-                      
+
                             <button
                               type="button"
                               className="iconBtn"
@@ -515,7 +559,7 @@ export default function EmployeeDashboard() {
                             >
                               +
                             </button>
-                      
+
                             <select
                               className="unitSelect"
                               value={v?.unit ?? it.defaultUnit ?? "piece"}
@@ -538,7 +582,6 @@ export default function EmployeeDashboard() {
                           </div>
                         </div>
                       );
-                      
                     })}
                   </div>
                 )}
@@ -562,6 +605,7 @@ export default function EmployeeDashboard() {
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
         onAllItems={() => { setMenuOpen(false); nav("/all-items"); }}
+        onTempLog={() => { setMenuOpen(false); nav("/employee/temperature"); }}
         onSwitchStore={() => { setMenuOpen(false); nav("/stores"); }}
         onLogout={async () => { setMenuOpen(false); await logout(); nav("/"); }}
       />

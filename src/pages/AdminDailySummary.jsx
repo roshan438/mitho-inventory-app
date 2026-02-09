@@ -122,10 +122,8 @@ export default function AdminDailySummary() {
         </div>
 
         <div className="topbar-right">
-          <button className="btn sm" onClick={() => { setStoreId(null); nav("/stores"); }}>
-            Switch
-          </button>
-          <button className="btn sm" onClick={logout}>Logout</button>
+        
+        <button className="btn" onClick={() => nav("/admin")}>Back</button>
         </div>
       </div>
 

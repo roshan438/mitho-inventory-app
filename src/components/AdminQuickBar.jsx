@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
-export default function AdminQuickBar() {
+export default function AdminQuickBar({ unreadStockCount, unreadTempCount}) {
   const nav = useNavigate();
   const loc = useLocation();
 
@@ -14,15 +14,17 @@ export default function AdminQuickBar() {
         onClick={() => nav("/admin/submissions")}
       >
         <span className="ico">📥</span>
-        <span className="txt">Submissions</span>
+        <span className="txt">Stock Logs</span>
+        {unreadStockCount > 0 ? <span className="adminBadgeDot needTopRight">{unreadStockCount}</span> : null}
       </button>
 
       <button
-        className={`quickbtn ${isActive("/admin/items") ? "active" : ""}`}
-        onClick={() => nav("/admin/items")}
+        className={`quickbtn ${isActive("/admin/temperature") ? "active" : ""}`}
+        onClick={() => nav("/admin/temperature")}
       >
-        <span className="ico">📦</span>
-        <span className="txt">Items</span>
+        <span className="ico">🔥</span>
+        <span className="txt">Temperature Logs</span>
+        {unreadTempCount > 0 ? <span className="adminBadgeDot needTopRight">{unreadTempCount}</span> : null}
       </button>
 
       <button

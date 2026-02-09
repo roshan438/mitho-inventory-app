@@ -1,6 +1,13 @@
 import React from "react";
 
-export default function SideMenu({ open, onClose, onAllItems, onSwitchStore, onLogout }) {
+export default function SideMenu({
+  open,
+  onClose,
+  onAllItems,
+  onTempLog,
+  onSwitchStore,
+  onLogout,
+}) {
   if (!open) return null;
 
   return (
@@ -30,13 +37,31 @@ export default function SideMenu({ open, onClose, onAllItems, onSwitchStore, onL
           gap: 10,
         }}
       >
-        <div style={{ fontWeight: 900, fontSize: 18, marginBottom: 6 }}>Menu</div>
+        <div style={{ fontWeight: 900, fontSize: 18, marginBottom: 6 }}>
+          Menu
+        </div>
 
-        <button className="btn" onClick={onAllItems}>All Items</button>
-        <button className="btn" onClick={onSwitchStore}>Switch Store</button>
-        <button className="btn" onClick={onLogout}>Logout</button>
+        <button className="btn" onClick={onAllItems || (() => {})}>
+          All Items
+        </button>
 
-        <button className="btn ghost" style={{ marginTop: "auto" }} onClick={onClose}>
+        <button className="btn" onClick={onTempLog || (() => {})}>
+          Temperature Log
+        </button>
+
+        <button className="btn" onClick={onSwitchStore || (() => {})}>
+          Switch Store
+        </button>
+
+        <button className="btn" onClick={onLogout || (() => {})}>
+          Logout
+        </button>
+
+        <button
+          className="btn ghost"
+          style={{ marginTop: "auto" }}
+          onClick={onClose}
+        >
           Close
         </button>
       </div>

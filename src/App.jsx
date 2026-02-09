@@ -15,8 +15,10 @@ import AdminReports from "./pages/AdminReports";
 import ManageStores from "./pages/ManageStores";
 import ManageEmployees from "./pages/ManageEmployees";
 import AdminDailySummary from "./pages/AdminDailySummary";
-
-
+import TemperatureLogEmployee from "./pages/TemperatureLogEmployee";
+import TemperatureLogsAdmin from "./pages/TemperatureLogsAdmin";
+import TemperatureLogAdminDay from "./pages/TemperatureLogAdminDay";
+import AdminInbox from "./pages/AdminInbox";
 
 
 
@@ -82,6 +84,19 @@ export default function App() {
     </RequireAuth>
   }
 />
+
+<Route
+  path="/employee/temperature"
+  element={
+    <RequireAuth>
+      <TemperatureLogEmployee />
+    </RequireAuth>
+  }
+/>
+
+<Route path="/admin/temperature" element={<TemperatureLogsAdmin />} />
+<Route path="/admin/temperature/:ymd" element={<TemperatureLogAdminDay />} />
+<Route path="/admin/inbox" element={<AdminInbox />} />
 
 <Route
   path="/admin/summary"
