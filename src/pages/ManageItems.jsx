@@ -15,7 +15,7 @@ import { db } from "../firebase/firebase";
 import { useStore } from "../context/StoreContext";
 import { useAuth } from "../context/AuthContext";
 
-const UNIT_OPTIONS = ["kg", "packet", "bottle", "piece", "Bucket", "Box", "Jhola"];
+const UNIT_OPTIONS = ["kg", "packet", "bottle", "piece", "Bucket", "Box", "Jhola", "Container"];
 
 const CATEGORY_OTHER = "__other__";
 const EDIT_CATEGORY_OTHER = "__other__";
