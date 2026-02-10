@@ -15,7 +15,7 @@ import { db } from "../firebase/firebase";
 import { useStore } from "../context/StoreContext";
 import { useAuth } from "../context/AuthContext";
 
-const UNIT_OPTIONS = ["kg", "packet", "bottle", "piece", "cup", "portion", "litre"];
+const UNIT_OPTIONS = ["kg", "packet", "bottle", "piece", "Bucket", "Box", "Jhola"];
 
 const CATEGORY_OTHER = "__other__";
 
@@ -309,7 +309,7 @@ const [categoryOther, setCategoryOther] = useState("");
 
   <option value={CATEGORY_OTHER}>+ Add new category…</option>
 </select>
-{categoryMode === "other" ? (
+{/* {categoryMode === "other" ? (
   <input
     className="input"
     style={{ marginTop: 8 }}
@@ -317,12 +317,12 @@ const [categoryOther, setCategoryOther] = useState("");
     onChange={(e) => setCategoryOther(e.target.value)}
     placeholder="Type new category name"
   />
-) : null}
+) : null} */}
 
         <div style={{ display: "flex", gap: 10 }}>
           <div style={{ flex: 1 }}>
-            <label className="label">Unit</label>
-            <select className="input unit_input" value={unit} onChange={(e) => setUnit(e.target.value)}>
+            <label className="label">Unit</label><br></br>
+            <select style={{padding: '8px 16px'}} className="input" value={unit} onChange={(e) => setUnit(e.target.value)}>
               {UNIT_OPTIONS.map((u) => (
                 <option key={u} value={u}>{u}</option>
               ))}
@@ -396,96 +396,53 @@ const [categoryOther, setCategoryOther] = useState("");
 
                               <label className="label">Category</label>
 
-<select
-  className="input"
-  value={categoryMode === "other" ? CATEGORY_OTHER : category}
-  onChange={(e) => {
-    const v = e.target.value;
-    if (v === CATEGORY_OTHER) {
-      setCategoryMode("other");
-      setCategoryOther("");
-    } else {
-      setCategoryMode("select");
-      setCategory(v);
-      setCategoryOther("");
-    }
-  }}
->
-  {/* common defaults first */}
-  <option value="custom">custom</option>
-  <option value="momo">momo</option>
-  <option value="chowmein">chowmein</option>
-  <option value="sauces">sauces</option>
-  <option value="drinks">drinks</option>
+                              <select
+                                className="input"
+                                value={editCategoryMode === "other" ? CATEGORY_OTHER : editCategory}
+                                onChange={(e) => {
+                                  const v = e.target.value;
+                                  if (v === CATEGORY_OTHER) {
+                                    setEditCategoryMode("other");
+                                    setEditCategoryOther(editCategory || "");
+                                  } else {
+                                    setEditCategoryMode("select");
+                                    setEditCategory(v);
+                                    setEditCategoryOther("");
+                                  }
+                                }}
+                              >
+                                {/* common defaults first */}
+                                <option value="custom">custom</option>
+                                <option value="momo">momo</option>
+                                <option value="chowmein">chowmein</option>
+                                <option value="sauces">sauces</option>
+                                <option value="drinks">drinks</option>
 
-  {/* existing categories from DB */}
-  {categories
-    .filter((c) => !["custom","momo","chowmein","sauces","drinks"].includes(c))
-    .map((c) => (
-      <option key={c} value={c}>{c}</option>
-    ))}
+                                {/* existing categories from DB */}
+                                {categories
+                                  .filter((c) => !["custom","momo","chowmein","sauces","drinks"].includes(c))
+                                  .map((c) => (
+                                    <option key={c} value={c}>{c}</option>
+                                  ))}
 
-  <option value={CATEGORY_OTHER}>+ Add new category…</option>
-</select>
+                                <option value={CATEGORY_OTHER}>+ Add new category…</option>
+                              </select>
 
-{categoryMode === "other" ? (
-  <input
-    className="input"
-    style={{ marginTop: 8 }}
-    value={categoryOther}
-    onChange={(e) => setCategoryOther(e.target.value)}
-    placeholder="Type new category name"
-  />
-) : null}
+                              {categoryMode === "other" ? (
+                                <input
+                                  className="input"
+                                  style={{ marginTop: 8 }}
+                                  value={editCategoryOther}
+                                  onChange={(e) => setEditCategoryOther(e.target.value)}
+                                  placeholder="Type new category name"
+                                />
+                              ) : null}
 
 
                               <div style={{ display: "flex", gap: 10 }}>
                                 <div style={{ flex: 1 }}>
-                                <label className="label">Category</label>
-
-<select
-  className="input"
-  value={editCategoryMode === "other" ? CATEGORY_OTHER : editCategory}
-  onChange={(e) => {
-    const v = e.target.value;
-    if (v === CATEGORY_OTHER) {
-      setEditCategoryMode("other");
-      setEditCategoryOther(editCategory || "");
-    } else {
-      setEditCategoryMode("select");
-      setEditCategory(v);
-      setEditCategoryOther("");
-    }
-  }}
->
-  {/* common defaults */}
-  <option value="custom">custom</option>
-  <option value="momo">momo</option>
-  <option value="chowmein">chowmein</option>
-  <option value="sauces">sauces</option>
-  <option value="drinks">drinks</option>
-
-  {categories
-    .filter((c) => !["custom","momo","chowmein","sauces","drinks"].includes(c))
-    .map((c) => (
-      <option key={c} value={c}>{c}</option>
-    ))}
-
-  <option value={CATEGORY_OTHER}>+ Add new category…</option>
-</select>
-
-{editCategoryMode === "other" ? (
-  <input
-    className="input"
-    style={{ marginTop: 8 }}
-    value={editCategoryOther}
-    onChange={(e) => setEditCategoryOther(e.target.value)}
-    placeholder="Type new category name"
-  />
-) : null}
-
-                                  <label className="label">Unit</label>
-                                  <select className="input" value={editUnit} onChange={(e) => setEditUnit(e.target.value)}>
+                                  <label style={{marginBottom: '8px'}} className="label">Unit</label> <br></br>
+                                  <select style={{padding: '8px 16px'}} className="input" value={editUnit} onChange={(e) => setEditUnit(e.target.value)}>
                                     {UNIT_OPTIONS.map((u) => (
                                       <option key={u} value={u}>{u}</option>
                                     ))}
@@ -494,8 +451,8 @@ const [categoryOther, setCategoryOther] = useState("");
 
                                 <div style={{ width: 140 }}>
                                   <label className="label">Low stock ≤</label>
-                                  <input
-                                    className="input"
+                                  <input 
+                                  style={{width:'100%', padding: '8px 16px'}}                                    className="input"
                                     value={editThreshold}
                                     onChange={(e) => setEditThreshold(e.target.value)}
                                     inputMode="numeric"
