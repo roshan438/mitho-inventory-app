@@ -414,6 +414,8 @@ export default function EmployeeDashboard() {
 
       setDirty(false);
       setMsg(finalIsEdit ? "Updated ✅ Admin will review changes." : "Submitted ✅ End of shift saved.");
+      setTimeout(() => setMsg(""), 2000);
+
     } catch (e) {
       console.error(e);
       setMsg(e?.message || "Save failed.");
@@ -427,6 +429,7 @@ export default function EmployeeDashboard() {
 
     if (!canSubmit) {
       setMsg("Please fill all quantities before submitting.");
+      setTimeout(() => setMsg(""), 2500);
       return;
     }
 
@@ -591,7 +594,12 @@ export default function EmployeeDashboard() {
         </div>
       )}
 
-      {msg ? <div className="muted" style={{ marginTop: 12 }}>{msg}</div> : null}
+{msg ? (
+  <div className={`toast ${msg.toLowerCase().includes("fail") ? "danger" : "success"}`}>
+    <span className="toastTxt">{msg}</span>
+  </div>
+) : null}
+
 
       <button
         className="btn primary empSubmitBtn"

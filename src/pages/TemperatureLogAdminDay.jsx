@@ -232,9 +232,11 @@ await updateDoc(logRef, {
 
   
       setMsg("Saved ✅");
+      setTimeout(() => setMsg(""), 2000);
     } catch (e) {
       console.error(e);
       setMsg(e?.message || "Save failed");
+      setTimeout(() => setMsg(""), 2000);
     } finally {
       setSaving(false);
     }
@@ -347,7 +349,11 @@ await updateDoc(logRef, {
             ))}
           </div>
 
-          {msg ? <div className="muted" style={{ marginTop: 12 }}>{msg}</div> : null}
+          {msg ? (
+  <div className={`toast ${msg.toLowerCase().includes("fail") ? "danger" : "success"}`}>
+    <span className="toastTxt">{msg}</span>
+  </div>
+) : null}
 
           <button
             className="btn primary"

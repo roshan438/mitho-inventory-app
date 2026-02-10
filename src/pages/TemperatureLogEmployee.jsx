@@ -161,6 +161,7 @@ export default function TemperatureLogEmployee() {
       (err) => {
         console.error(err);
         setMsg(err?.message || "Failed to load store equipment.");
+        setTimeout(() => setMsg(""), 2500);
         setLoading(false);
       }
     );
@@ -322,12 +323,15 @@ export default function TemperatureLogEmployee() {
             ? "Updated ✅ (⚠️ Some temperatures are out of range. Admin will review.)"
             : "Saved ✅ (⚠️ Some temperatures are out of range. Admin will review.)"
         );
+        setTimeout(() => setMsg(""), 2500);
       } else {
         setMsg(isEdit ? "Updated ✅ Admin will review changes." : "Saved ✅ Temperature log recorded.");
+        setTimeout(() => setMsg(""), 2500);
       }
     } catch (e) {
       console.error(e);
       setMsg(e?.message || "Save failed.");
+      setTimeout(() => setMsg(""), 2500);
     } finally {
       setSaving(false);
     }
@@ -338,6 +342,7 @@ export default function TemperatureLogEmployee() {
 
     if (!canSubmit) {
       setMsg("Please enter temperature for all equipment.");
+      setTimeout(() => setMsg(""), 2500);
       return;
     }
 
@@ -524,7 +529,11 @@ export default function TemperatureLogEmployee() {
         </div>
       )}
 
-      {msg ? <div className="muted" style={{ marginTop: 12 }}>{msg}</div> : null}
+{msg ? (
+  <div className={`toast ${msg.toLowerCase().includes("fail") ? "danger" : "success"}`}>
+    <span className="toastTxt">{msg}</span>
+  </div>
+) : null}
 
       <button
         className="btn primary"
