@@ -18,6 +18,7 @@ import { useAuth } from "../context/AuthContext";
 const UNIT_OPTIONS = ["kg", "packet", "bottle", "piece", "Bucket", "Box", "Jhola"];
 
 const CATEGORY_OTHER = "__other__";
+const EDIT_CATEGORY_OTHER = "__other__";
 
 function normCat(s) {
   return String(s || "").trim();
@@ -60,8 +61,8 @@ export default function ManageItems() {
   const [unit, setUnit] = useState("piece");
   const [threshold, setThreshold] = useState("2");
   const [category, setCategory] = useState("");
-const [categoryMode, setCategoryMode] = useState("select"); // select | other
-const [categoryOther, setCategoryOther] = useState("");
+  const [categoryMode, setCategoryMode] = useState("select"); // select | other
+  const [categoryOther, setCategoryOther] = useState("");
 
   // edit
   const [editingId, setEditingId] = useState(null);
@@ -278,27 +279,27 @@ const [categoryOther, setCategoryOther] = useState("");
           placeholder="New item name"
         />
 
-<select
-  className="input"
-  value={categoryMode === "other" ? CATEGORY_OTHER : category}
-  onChange={(e) => {
-    const v = e.target.value;
-    if (v === CATEGORY_OTHER) {
-      setCategoryMode("other");
-      setCategoryOther("");
-    } else {
-      setCategoryMode("select");
-      setCategory(v);
-      setCategoryOther("");
-    }
-  }}
->
-  {/* common defaults first */}
-  <option value="custom">custom</option>
-  <option value="momo">momo</option>
-  <option value="chowmein">chowmein</option>
-  <option value="sauces">sauces</option>
-  <option value="drinks">drinks</option>
+        <select
+          className="input"
+          value={categoryMode === "other" ? CATEGORY_OTHER : category}
+          onChange={(e) => {
+            const v = e.target.value;
+            if (v === CATEGORY_OTHER) {
+              setCategoryMode("other");
+              setCategoryOther("");
+            } else {
+              setCategoryMode("select");
+              setCategory(v);
+              setCategoryOther("");
+            }
+          }}
+          >
+          {/* common defaults first */}
+          <option value="custom">custom</option>
+          <option value="momo">momo</option>
+          <option value="chowmein">chowmein</option>
+          <option value="sauces">sauces</option>
+          <option value="drinks">drinks</option>
 
   {/* existing categories from DB */}
   {categories
@@ -309,7 +310,7 @@ const [categoryOther, setCategoryOther] = useState("");
 
   <option value={CATEGORY_OTHER}>+ Add new category…</option>
 </select>
-{/* {categoryMode === "other" ? (
+{categoryMode === "other" ? (
   <input
     className="input"
     style={{ marginTop: 8 }}
@@ -317,7 +318,7 @@ const [categoryOther, setCategoryOther] = useState("");
     onChange={(e) => setCategoryOther(e.target.value)}
     placeholder="Type new category name"
   />
-) : null} */}
+) : null}
 
         <div style={{ display: "flex", gap: 10 }}>
           <div style={{ flex: 1 }}>
@@ -398,10 +399,10 @@ const [categoryOther, setCategoryOther] = useState("");
 
                               <select
                                 className="input"
-                                value={editCategoryMode === "other" ? CATEGORY_OTHER : editCategory}
+                                value={editCategoryMode === "other" ? EDIT_CATEGORY_OTHER : editCategory}
                                 onChange={(e) => {
                                   const v = e.target.value;
-                                  if (v === CATEGORY_OTHER) {
+                                  if (v === EDIT_CATEGORY_OTHER) {
                                     setEditCategoryMode("other");
                                     setEditCategoryOther(editCategory || "");
                                   } else {
@@ -425,10 +426,10 @@ const [categoryOther, setCategoryOther] = useState("");
                                     <option key={c} value={c}>{c}</option>
                                   ))}
 
-                                <option value={CATEGORY_OTHER}>+ Add new category…</option>
+                                <option value={EDIT_CATEGORY_OTHER}>+ Add new category…</option>
                               </select>
 
-                              {categoryMode === "other" ? (
+                              {editCategoryMode === "other" ? (
                                 <input
                                   className="input"
                                   style={{ marginTop: 8 }}
