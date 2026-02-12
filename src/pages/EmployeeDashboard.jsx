@@ -603,7 +603,7 @@ export default function EmployeeDashboard() {
 
       <button
         className="btn primary empSubmitBtn"
-        disabled={!canSubmit || saving}
+        // disabled={!canSubmit || saving}
         onClick={submitOrUpdateShift}
       >
         {saving ? "Saving…" : hasSubmittedToday ? "Update Today’s Stock" : "Submit End of Shift"}
