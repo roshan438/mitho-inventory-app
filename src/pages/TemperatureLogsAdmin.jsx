@@ -1,46 +1,43 @@
 // src/pages/TemperatureLogsAdmin.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { collection, doc, onSnapshot, orderBy, query, limit } from "firebase/firestore";
+import { 
+  collection, 
+  doc, 
+  onSnapshot, 
+  orderBy, 
+  query, 
+  limit, 
+  updateDoc 
+} from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import { useAuth } from "../context/AuthContext";
 import { useStore } from "../context/StoreContext";
 
-function inferRangeFromLabel(label = "") {
-  const s = String(label).toLowerCase();
-  if (s.includes("freezer")) return { min: -25, max: -15 };
-  return { min: 0, max: 5 };
-}
-
-function computeOutOfRange(equipment = {}, equipmentList = []) {
-  const byId = new Map((equipmentList || []).map((e) => [e.id, e]));
-  let outCount = 0;
-
-  for (const [eqId, v] of Object.entries(equipment || {})) {
-    const label = v?.label || byId.get(eqId)?.label || eqId;
-    const temp = typeof v?.temp === "number" ? v.temp : Number(v?.temp);
-    const cfg = byId.get(eqId);
-    const range = {
-      min: typeof cfg?.min === "number" ? cfg.min : inferRangeFromLabel(label).min,
-      max: typeof cfg?.max === "number" ? cfg.max : inferRangeFromLabel(label).max,
-    };
-    const bad = Number.isFinite(temp) ? (temp < range.min || temp > range.max) : false;
-    if (bad) outCount += 1;
-  }
-
-  return { outCount, hasOutOfRange: outCount > 0 };
-}
-
-function badgeText(log) {
-  if (log?.hasOutOfRange) return "ALERT";
-  if (log?.needsAdminReview) return "REVIEW";
+function badgeText(day) {
+  const count = Number(day?.checkCount || 0);
+  if (count < 2) return `PENDING (${count}/2)`;
+  if (day?.hasOutOfRange) return "ALERT";
+  if (day?.needsAdminReview) return "REVIEW";
   return "OK";
 }
 
-function badgeClass(log) {
-  if (log?.hasOutOfRange) return "badge red";
-  if (log?.needsAdminReview) return "badge orange";
+function badgeClass(day) {
+  const count = Number(day?.checkCount || 0);
+  if (count < 2) return "badge gray";
+  if (day?.hasOutOfRange) return "badge red";
+  if (day?.needsAdminReview) return "badge orange";
   return "badge green";
+}
+
+function formatTs(ts) {
+  try {
+    if (!ts) return "";
+    const d = ts?.toDate?.() ? ts.toDate() : new Date(ts);
+    return d.toLocaleString();
+  } catch {
+    return "";
+  }
 }
 
 export default function TemperatureLogsAdmin() {
@@ -49,8 +46,7 @@ export default function TemperatureLogsAdmin() {
   const { storeId } = useStore();
 
   const [loading, setLoading] = useState(true);
-  const [equipmentList, setEquipmentList] = useState([]);
-  const [logs, setLogs] = useState([]);
+  const [days, setDays] = useState([]);
 
   useEffect(() => {
     if (profile && profile.role !== "admin") nav("/employee");
@@ -61,46 +57,60 @@ export default function TemperatureLogsAdmin() {
       nav("/stores");
       return;
     }
-    const storeRef = doc(db, "stores", storeId);
-    const unsub = onSnapshot(storeRef, (snap) => {
-      const data = snap.data() || {};
-      setEquipmentList(Array.isArray(data.temperatureEquipment) ? data.temperatureEquipment : []);
-    });
-    return () => unsub();
-  }, [storeId, nav]);
 
-  useEffect(() => {
-    if (!storeId) return;
     setLoading(true);
 
     const q = query(
       collection(db, "stores", storeId, "temperatureLogs"),
-      orderBy("submittedDate", "desc"),
+      orderBy("__name__", "desc"),
       limit(90)
     );
 
     const unsub = onSnapshot(
       q,
       (snap) => {
-        setLogs(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        setDays(rows);
         setLoading(false);
       },
       (err) => {
         console.error(err);
-        setLogs([]);
+        setDays([]);
         setLoading(false);
       }
     );
 
     return () => unsub();
-  }, [storeId]);
+  }, [storeId, nav]);
 
   const enriched = useMemo(() => {
-    return logs.map((l) => {
-      const { hasOutOfRange, outCount } = computeOutOfRange(l.equipment || {}, equipmentList);
-      return { ...l, hasOutOfRange, outCount };
+    return (days || []).map((d) => {
+      const count = Number(d?.checkCount || 0);
+      return {
+        ...d,
+        checkCount: count,
+        ymd: d?.submittedDate || d?.id,
+      };
     });
-  }, [logs, equipmentList]);
+  }, [days]);
+
+  // ✅ Fixed Click Handler: Navigates AND updates Firestore
+  const handleRowClick = async (d) => {
+    nav(`/admin/temperature/${d.ymd}`);
+
+    if (d.needsAdminReview || d.isReadByAdmin == false
+    ) {
+      try {
+        const docRef = doc(db, "stores", storeId, "temperatureLogs", d.id);
+        await updateDoc(docRef, {
+          needsAdminReview: false,
+          isReadByAdmin: true
+        });
+      } catch (err) {
+        console.error("Error clearing review flag:", err);
+      }
+    }
+  };
 
   return (
     <div className="page">
@@ -119,29 +129,38 @@ export default function TemperatureLogsAdmin() {
         <div className="muted" style={{ marginTop: 12 }}>No temperature logs yet.</div>
       ) : (
         <div className="list" style={{ marginTop: 12 }}>
-          {enriched.map((l) => (
+          {enriched.map((d) => (
             <div
-              key={l.id}
+              key={d.id}
               className="list-card"
               role="button"
-              onClick={() => nav(`/admin/temperature/${l.submittedDate || l.id}`)}
+              onClick={() => handleRowClick(d)}
               style={{ cursor: "pointer" }}
             >
               <div>
-                <div className="list-title" style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                  <span>{l.submittedDate || l.id}</span>
-                  <span className={badgeClass(l)}>{badgeText(l)}</span>
-                  {l.hasOutOfRange ? (
+                <div
+                  className="list-title"
+                  style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}
+                >
+                  <span>{d.ymd}</span>
+
+                  <span className={badgeClass(d)}>{badgeText(d)}</span>
+
+                  <span className="meta" style={{ fontWeight: 900 }}>
+                    Checks: {Number(d?.checkCount || 0)}/2
+                  </span>
+
+                  {d?.hasOutOfRange ? (
                     <span className="meta" style={{ fontWeight: 900 }}>
-                      {l.outCount} out of range
+                      ⚠️ Out of range
                     </span>
                   ) : null}
                 </div>
 
                 <div className="meta">
-                  By: <b>{l.submittedByName || l.submittedByEmployeeId || "-"}</b>
-                  {l.lastEditedAt ? (
-                    <> • Edited by <b>{l.lastEditedByName || l.lastEditedByEmployeeId || "-"}</b></>
+                  Updated by: <b>{d?.updatedByName || d?.submittedByName || "-"}</b>
+                  {d?.lastCheckAt ? (
+                    <> • Last check: <b>{formatTs(d.lastCheckAt)}</b></>
                   ) : null}
                 </div>
               </div>

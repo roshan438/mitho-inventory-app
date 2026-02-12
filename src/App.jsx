@@ -1,7 +1,9 @@
+// src/App.jsx
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { StoreProvider } from "./context/StoreContext";
+import { auth } from "./firebase/firebase";
 
 import Login from "./pages/Login";
 import StoreSelect from "./pages/StoreSelect";
@@ -15,14 +17,13 @@ import AdminReports from "./pages/AdminReports";
 import ManageStores from "./pages/ManageStores";
 import ManageEmployees from "./pages/ManageEmployees";
 import AdminDailySummary from "./pages/AdminDailySummary";
+import AdminInbox from "./pages/AdminInbox";
+
+import TemperaturePickSlot from "./pages/TemperaturePickSlot";
 import TemperatureLogEmployee from "./pages/TemperatureLogEmployee";
 import TemperatureLogsAdmin from "./pages/TemperatureLogsAdmin";
 import TemperatureLogAdminDay from "./pages/TemperatureLogAdminDay";
-import AdminInbox from "./pages/AdminInbox";
-
-
-
-import { auth } from "./firebase/firebase";
+import TemperatureLogAdminCheck from "./pages/TemperatureLogAdminCheck"; // ✅ NEW (below)
 
 function RequireAuth({ children }) {
   const { fbUser, loading } = useAuth();
@@ -35,12 +36,9 @@ function RequireAuth({ children }) {
     );
   }
 
-  // Key fix: allow auth.currentUser immediately after login
   const user = fbUser || auth.currentUser;
-
-  return user ? children : <Navigate to='/' replace />;
+  return user ? children : <Navigate to="/" replace />;
 }
-
 
 export default function App() {
   return (
@@ -58,57 +56,6 @@ export default function App() {
                 </RequireAuth>
               }
             />
-            <Route
-  path="/admin/employees"
-  element={
-    <RequireAuth>
-      <ManageEmployees />
-    </RequireAuth>
-  }
-/>
-
-
-          <Route
-            path="/admin/reports"
-            element={
-              <RequireAuth>
-                <AdminReports />
-              </RequireAuth>
-            }
-          />
-          <Route
-  path="/admin/stores"
-  element={
-    <RequireAuth>
-      <ManageStores />
-    </RequireAuth>
-  }
-/>
-
-<Route
-  path="/employee/temperature"
-  element={
-    <RequireAuth>
-      <TemperatureLogEmployee />
-    </RequireAuth>
-  }
-/>
-
-<Route path="/admin/temperature" element={<TemperatureLogsAdmin />} />
-<Route path="/admin/temperature/:ymd" element={<TemperatureLogAdminDay />} />
-<Route path="/admin/inbox" element={<AdminInbox />} />
-
-<Route
-  path="/admin/summary"
-  element={
-    <RequireAuth>
-      <AdminDailySummary />
-    </RequireAuth>
-  }
-/>
-
-
-
 
             <Route
               path="/employee"
@@ -119,15 +66,34 @@ export default function App() {
               }
             />
 
-<Route
-  path="/admin/submissions/:dayId"
-  element={
-    <RequireAuth>
-      <AdminSubmissionDetail />
-    </RequireAuth>
-  }
-/>
+            {/* ✅ Employee temp: pick log first */}
+            <Route
+              path="/employee/temperature"
+              element={
+                <RequireAuth>
+                  <TemperaturePickSlot />
+                </RequireAuth>
+              }
+            />
 
+            {/* ✅ Employee temp: actual form (log1/log2) */}
+            <Route
+              path="/employee/temperature/:slot"
+              element={
+                <RequireAuth>
+                  <TemperatureLogEmployee />
+                </RequireAuth>
+              }
+            />
+
+            <Route
+              path="/all-items"
+              element={
+                <RequireAuth>
+                  <AllItems />
+                </RequireAuth>
+              }
+            />
 
             <Route
               path="/admin"
@@ -138,21 +104,11 @@ export default function App() {
               }
             />
 
-<Route
-  path="/admin/items"
-  element={
-    <RequireAuth>
-      <ManageItems />
-    </RequireAuth>
-  }
-/>
-
-
             <Route
-              path="/all-items"
+              path="/admin/items"
               element={
                 <RequireAuth>
-                  <AllItems />
+                  <ManageItems />
                 </RequireAuth>
               }
             />
@@ -166,6 +122,89 @@ export default function App() {
               }
             />
 
+            <Route
+              path="/admin/submissions/:dayId"
+              element={
+                <RequireAuth>
+                  <AdminSubmissionDetail />
+                </RequireAuth>
+              }
+            />
+
+            <Route
+              path="/admin/reports"
+              element={
+                <RequireAuth>
+                  <AdminReports />
+                </RequireAuth>
+              }
+            />
+
+            <Route
+              path="/admin/stores"
+              element={
+                <RequireAuth>
+                  <ManageStores />
+                </RequireAuth>
+              }
+            />
+
+            <Route
+              path="/admin/employees"
+              element={
+                <RequireAuth>
+                  <ManageEmployees />
+                </RequireAuth>
+              }
+            />
+
+            <Route
+              path="/admin/summary"
+              element={
+                <RequireAuth>
+                  <AdminDailySummary />
+                </RequireAuth>
+              }
+            />
+
+            <Route
+              path="/admin/inbox"
+              element={
+                <RequireAuth>
+                  <AdminInbox />
+                </RequireAuth>
+              }
+            />
+
+            {/* ✅ Admin temp list */}
+            <Route
+              path="/admin/temperature"
+              element={
+                <RequireAuth>
+                  <TemperatureLogsAdmin />
+                </RequireAuth>
+              }
+            />
+
+            {/* ✅ Admin day view (shows Log1 + Log2 buttons) */}
+            <Route
+              path="/admin/temperature/:ymd"
+              element={
+                <RequireAuth>
+                  <TemperatureLogAdminDay />
+                </RequireAuth>
+              }
+            />
+
+            {/* ✅ Admin open a specific check */}
+            <Route
+              path="/admin/temperature/:ymd/:slot"
+              element={
+                <RequireAuth>
+                  <TemperatureLogAdminCheck />
+                </RequireAuth>
+              }
+            />
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
