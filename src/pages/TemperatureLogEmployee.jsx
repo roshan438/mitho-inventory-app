@@ -484,7 +484,7 @@ export default function TemperatureLogEmployee() {
                     type="text"
                     inputMode="decimal"
                     step="any"
-                    placeholder="e.g. -18.5"
+                    placeholder="e.g. 00"
                     value={values[eq.id]?.temp ?? ""}
                     onChange={(e) => {
                       setDirty(true);
