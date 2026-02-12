@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { registerPushForUser } from "../notifications/registerPush";
 
-const VAPID_KEY = "YOUR_VAPID_PUBLIC_KEY"; // from Firebase Cloud Messaging
+const VAPID_KEY = "BOKXJdWNLB3UVFj3JDy4qTzz-hINAS9Y3myTC2rE8BnUz1fGLrgwdYjESdx8D1ZTA-P-8RYw3Ix7WSmPTOVOmTM"; // from Firebase Cloud Messaging
 
 export default function EnableNotificationsButton() {
   const { fbUser, profile } = useAuth();

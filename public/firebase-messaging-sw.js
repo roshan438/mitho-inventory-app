@@ -6,12 +6,14 @@ importScripts("https://www.gstatic.com/firebasejs/10.12.4/firebase-messaging-com
 
 // ✅ same config as your src/firebase/firebase.js
 firebase.initializeApp({
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    appId: import.meta.env.VITE_FIREBASE_APP_ID,
+    apiKey: "AIzaSyC1pGbpEnduwnH0NBvS6V7gZrwP23xg2nI",
+  authDomain: "mitho-inventory-app.firebaseapp.com",
+  projectId: "mitho-inventory-app",
+  storageBucket: "mitho-inventory-app.firebasestorage.app",
+  messagingSenderId: "731468109014",
+  appId: "1:731468109014:web:278ca270db5d4d6159a577",
+  measurementId: "G-7MDH29MQ4B"
+
 });
 
 const messaging = firebase.messaging();

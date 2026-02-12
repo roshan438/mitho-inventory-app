@@ -14,6 +14,7 @@ import { useAuth } from "../context/AuthContext";
 import useCurrentStoreName from "../hooks/useCurrentStoreName";
 import AdminQuickBar from "../components/AdminQuickBar";
 import NotificationBell from "../components/NotificationBell";
+import EnableNotificationsButton from "../components/EnableNotificationsButton";
 
 function todayYMD() {
   const d = new Date();
@@ -349,6 +350,7 @@ export default function AdminDashboard() {
         </div>
 
         <div className="adminDashTopBtns">
+          <EnableNotificationsButton/>
           <button className="adminPillBtn" onClick={logout}>
           Logout
         </button>

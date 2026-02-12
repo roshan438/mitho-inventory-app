@@ -25,7 +25,7 @@ export async function registerPushForUser({
   // 2) Register service worker (required for FCM Web Push)
   if (!("serviceWorker" in navigator)) throw new Error("Service worker not supported");
 
-  const swReg = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+  const swReg = await navigator.serviceWorker.register("/firebase-messaging-sw.js", {scope:"/",});
 
   // 3) Get FCM token
   const messaging = await getAppMessaging();
