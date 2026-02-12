@@ -114,7 +114,15 @@ export default function TemperatureLogEmployee() {
   const ymd = todayYMD();
 
   const logDocRef = storeId
-    ? doc(db, "stores", storeId, "temperatureLogs", ymd)
+    ? collection(
+      db,
+      "stores",
+      storeId,
+      "temperatureLogs",
+      ymd,
+      "entries"
+    )
+    
     : null;
 
   // ✅ Load equipment config (stores/{storeId}.temperatureEquipment)
@@ -475,8 +483,8 @@ export default function TemperatureLogEmployee() {
                     }}
                     type="text"
                     inputMode="decimal"
-                    pattern="^-?[0-9]*[.,]?[0-9]*$"
-                    placeholder="e.g. 3.5"
+                    step="any"
+                    placeholder="e.g. -18.5"
                     value={values[eq.id]?.temp ?? ""}
                     onChange={(e) => {
                       setDirty(true);
