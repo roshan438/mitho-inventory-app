@@ -16,6 +16,7 @@ import { useStore } from "../context/StoreContext";
 import ConfirmModal from "../components/ConfirmModal";
 import EmployeeTopBar from "../components/EmployeeTopBar";
 import SideMenu from "../components/SideMenu";
+import EnableNotificationsButton from "../components/EnableNotificationsButton";
 
 const UNIT_OPTIONS = ["kg", "packet", "bottle", "piece", "cup", "portion", "litre"];
 
@@ -449,7 +450,7 @@ export default function EmployeeDashboard() {
   return (
     <div className="page">
       <EmployeeTopBar title="End-of-shift Stock" onMenu={() => setMenuOpen(true)} />
-
+        <EnableNotificationsButton/>
       {/* Header */}
       <div className="card" style={{ marginBottom: 12 }}>
         <div className="empHeaderRow">

@@ -15,3 +15,10 @@ const app = initializeApp(firebaseConfig);
 
 export const db = getFirestore(app);
 export const auth = getAuth(app);
+
+export async function getAppMessaging() {
+  const supported = await isSupported();
+  if (!supported) return null;
+  return getMessaging(app);
+
+}
